@@ -1,5 +1,5 @@
 ---
-title: "Week 3 Peer Review"
+title: "graphical_elements_exercise"
 output: html_document
 ---
 
