@@ -1,5 +1,5 @@
 ---
-title: "Week 2 Peer Review"
+title: "ggplot2_exercise"
 output: html_document
 ---
 
