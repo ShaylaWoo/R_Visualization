@@ -1,0 +1,155 @@
+---
+title: "Week 3 Peer Review"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+######DO NOT MODIFY. This will load required packages and data.
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(viridis)
+library(hrbrthemes)
+
+cces <- drop_na(read_csv(url("https://www.dropbox.com/s/ahmt12y39unicd2/cces_sample_coursera.csv?raw=1")))
+
+cel <- drop_na(read_csv(url("https://www.dropbox.com/s/4ebgnkdhhxo5rac/cel_volden_wiseman%20_coursera.csv?raw=1")))
+
+```
+
+Following the directions on the Coursera assignment page, you will make four original visualizations. Note that the data for the CCES and CEL data are imported in code in the R Markdown file.
+
+### Put your name here: Shayla Wu
+
+## Exercise 1
+
+#### Explain what you are visualizing here:
+
+1. Besides those full-vote MC, visualize vote-percent each MC won.
+2. Group by whether the MC is Democrat and whether was state legislator.
+3. Use **theme_ipsum**
+
+#### Put your figure here:
+
+```{r exercise1,echo=FALSE,out.width = '90%',fig.asp=1}
+democrat <- recode(cel$dem,`1`="Democrat",`0`="Not Democrat")
+stateleg <- recode(cel$state_leg,`1`="Was State Legislator",`0`="Was Not State Legislator")
+cel1 <- cel %>% mutate(vote_level = case_when(votepct_sq<=2500~"Low",
+                                      votepct_sq<=7500~"Mid",
+                                      seniority<=10000~"High"))
+
+cel1 %>% add_column(democrat,stateleg) %>% filter(votepct_sq!=10000) %>% 
+  ggplot(aes(thomas_num,votepct,colour=votepct)) +
+  geom_point(alpha=.4,shape = 16,size=1.5) + 
+  facet_wrap(~democrat+stateleg) +
+  geom_rug(sides="l",alpha=0.05,size=0.7) + 
+  theme_ipsum() +
+  labs(x="Member of Congress",
+       y="Vote Percent",
+       title="Poll of Congress Members") +
+  theme(axis.text.x=element_blank(),
+        legend.position="none") +
+  geom_hline(yintercept = 90,colour="red",alpha=.5)
+
+```
+
+## Exercise 2
+
+#### Explain what you are visualizing here:
+
+1. Devide MC into 4 groups based on vote percents.
+2. Summarise the distribution of vote percent for each group by boxplot.
+3. Compare horizontally between majority MC and minority MC. 
+4. Use **theme_stata**
+
+#### Put your figure here:
+
+```{r exercise2,echo=FALSE}
+cel2 <- cel %>% mutate(Seniority = case_when(seniority<=2~"Very Low",
+                                             seniority<=4~"Low",
+                                             seniority<=7~"High",
+                                             seniority<=30~"Very High"))
+Majority <- recode(cel$majority,`0`="Minority",`1`="Majority")
+
+cel2 %>%
+  add_column(Majority) %>%
+  ggplot(aes(x=Seniority, y = votepct,fill=Majority)) +
+  geom_boxplot(outlier.size = 1,
+               outlier.colour="coral2") +
+  theme_stata() +
+  labs(x="Level of Seniority",y="Vote Percent",
+       title="Vote Percent by Level of Seniority")
+  
+```
+
+## Exercise 3
+
+#### Explain what you are visualizing here:
+
+1. Visualize respondents' ideology by bar plot.
+2. Visualize gender difference by fill color and overlap bars.
+
+#### Put your figure here:
+
+```{r exercise3,echo=FALSE}
+ideology <- recode(cces$ideo5,`1`="Very liberal",`2`="Liberal",`3`="Moderate",`4`="Conservative",`5`="Very conservative")
+Gender <- recode_factor(cces$gender, '1' = 'Male', '2' = 'Female')
+
+cces %>% 
+  # add_column(ideology) %>%
+  # ggplot(aes(x=ideology,fill=ideology)) +
+  add_column(Gender,ideology) %>% 
+  ggplot(aes(x=ideology,fill=Gender)) +
+  geom_bar(position = "identity",
+           alpha=0.5) +
+  labs(x="Ideology",y="Count",title="Respondent Ideology")
+```
+
+## Exercise 4
+
+#### Explain what you are visualizing here:
+
+1. Visualize bill introduction by states over years (started from 1981)
+2. Compare bill introduction by regions
+3. Use **theme_ipsum**
+
+#### Put your figure here:
+
+```{r exercise4,echo=FALSE,message = FALSE,out.width = '100%'}
+st_region_index <- c()
+for (st in cel$st_name){st_region_index <- c(st_region_index,which(state.abb==st))}
+st_region <- state.region[c(st_region_index)]
+cel4 <- cel %>%
+  select(st_name,year,all_bills) %>%
+  mutate(Region=st_region,region=st_region) 
+
+dat4 <- cel4 %>%
+  group_by(st_name,year,region) %>%
+  summarise(st_all_bills=sum(all_bills))
+
+dat4 <- dat4 %>% 
+  mutate(Region=region) %>%
+  filter(year>1980)
+
+add_label <- data.frame(year=c(2002,2002),st_all_bills=c(800,650),region=c("West","Northeast"))
+
+dat4 %>% 
+  ggplot(aes(x=year,y=st_all_bills)) + 
+  geom_line(data=dat4 %>% dplyr::select(-region),
+            aes(group=st_name), color="grey", size=0.5, alpha=0.5) +
+  geom_line(aes(group=st_name,colour=region), size=0.7,alpha=0.7) +
+  scale_color_viridis(discrete = TRUE) +
+  theme_ipsum() +
+  theme(
+    # legend.position="none",
+    plot.title = element_text(size=14),
+    panel.grid = element_blank()
+  ) +
+  labs(x="Year",y="Bill Introdution by State") +
+  ggtitle("A Spaghetti Chart of Bill Introduction") +
+  facet_wrap(~region) +
+  geom_label(data=add_label,label=c("NY","CA"),fill=c("darkgoldenrod1","darkorchid4"),colour=c("black","white"))
+
+```
